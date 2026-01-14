@@ -27,7 +27,8 @@ interface AddCandidateModalProps {
 }
 
 export default function AddCandidateModal({ open, onOpenChange }: AddCandidateModalProps) {
-  const { addCandidate, products } = useApp();
+  const { addCandidate, products, departments } = useApp();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     department: '',
@@ -39,7 +40,7 @@ export default function AddCandidateModal({ open, onOpenChange }: AddCandidateMo
     featuresTested: [] as string[],
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.department || !formData.title) {
@@ -47,27 +48,35 @@ export default function AddCandidateModal({ open, onOpenChange }: AddCandidateMo
       return;
     }
 
-    addCandidate({
-      ...formData,
-      recordings: [],
-      notes: '',
-      sessions: [],
-    });
+    setIsSubmitting(true);
+    try {
+      await addCandidate({
+        ...formData,
+        recordings: [],
+        notes: '',
+        sessions: [],
+      });
 
-    toast.success('Candidate added successfully');
-    onOpenChange(false);
-    
-    // Reset form
-    setFormData({
-      name: '',
-      department: '',
-      title: '',
-      location: '',
-      dateOfJoining: '',
-      researchStatus: 'To be scheduled',
-      userType: 'Builder',
-      featuresTested: [],
-    });
+      toast.success('Candidate added successfully');
+      onOpenChange(false);
+      
+      // Reset form
+      setFormData({
+        name: '',
+        department: '',
+        title: '',
+        location: '',
+        dateOfJoining: '',
+        researchStatus: 'To be scheduled',
+        userType: 'Builder',
+        featuresTested: [],
+      });
+    } catch (error) {
+      console.error('Error adding candidate:', error);
+      toast.error('Failed to add candidate. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -91,18 +100,29 @@ export default function AddCandidateModal({ open, onOpenChange }: AddCandidateMo
                   placeholder="John Doe"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="department">
                   Department/Team <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="department"
-                  placeholder="Engineering"
+                <Select
                   value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                />
+                  onValueChange={(value) => setFormData({ ...formData, department: value })}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept: any) => (
+                      <SelectItem key={dept.id} value={dept.name}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -116,6 +136,7 @@ export default function AddCandidateModal({ open, onOpenChange }: AddCandidateMo
                   placeholder="Software Engineer"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -125,6 +146,7 @@ export default function AddCandidateModal({ open, onOpenChange }: AddCandidateMo
                   placeholder="Mumbai"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -137,6 +159,7 @@ export default function AddCandidateModal({ open, onOpenChange }: AddCandidateMo
                   type="date"
                   value={formData.dateOfJoining}
                   onChange={(e) => setFormData({ ...formData, dateOfJoining: e.target.value })}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -144,6 +167,7 @@ export default function AddCandidateModal({ open, onOpenChange }: AddCandidateMo
                 <Select
                   value={formData.userType}
                   onValueChange={(value) => setFormData({ ...formData, userType: value as UserType })}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -161,6 +185,7 @@ export default function AddCandidateModal({ open, onOpenChange }: AddCandidateMo
               <Select
                 value={formData.researchStatus}
                 onValueChange={(value) => setFormData({ ...formData, researchStatus: value as ResearchStatus })}
+                disabled={isSubmitting}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -196,6 +221,7 @@ export default function AddCandidateModal({ open, onOpenChange }: AddCandidateMo
                             });
                           }
                         }}
+                        disabled={isSubmitting}
                         className="rounded"
                       />
                       <span className="text-sm">{feature}</span>
@@ -206,11 +232,11 @@ export default function AddCandidateModal({ open, onOpenChange }: AddCandidateMo
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
-              Add Candidate
+            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add Candidate'}
             </Button>
           </DialogFooter>
         </form>

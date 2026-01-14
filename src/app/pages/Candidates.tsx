@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { Plus, Search, Filter, MoreHorizontal, Video } from 'lucide-react';
+import { Plus, Search, Filter, MoreHorizontal, Video, Users } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -109,7 +109,7 @@ export default function Dashboard() {
     <div className="p-8 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl mb-2">Welcome back, {currentUser.name}</h1>
+        <h1 className="text-3xl mb-2">Welcome back, {currentUser?.name || 'User'}</h1>
         <p className="text-neutral-600">Here's what's happening with your research today</p>
       </div>
 

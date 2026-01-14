@@ -27,6 +27,17 @@ export default function MainLayout() {
   const { currentUser } = useApp();
   const navigate = useNavigate();
 
+  // Handle case where currentUser is not yet loaded
+  if (!currentUser) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <p className="text-neutral-600">Loading user...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-neutral-50">
       {/* Sidebar */}
@@ -39,7 +50,7 @@ export default function MainLayout() {
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navigation.map((item) => {
-            if (item.adminOnly && currentUser.role !== 'Admin') return null;
+            if (item.adminOnly && currentUser?.role !== 'Admin') return null;
             
             return (
               <NavLink
@@ -88,12 +99,12 @@ export default function MainLayout() {
                 <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-emerald-100 text-emerald-700">
-                      {currentUser.name.split(' ').map(n => n[0]).join('')}
+                      {currentUser?.name?.split(' ').map(n => n[0]).join('') || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="text-left">
-                    <p className="text-sm">{currentUser.name}</p>
-                    <p className="text-xs text-neutral-500">{currentUser.role}</p>
+                    <p className="text-sm">{currentUser?.name}</p>
+                    <p className="text-xs text-neutral-500">{currentUser?.role}</p>
                   </div>
                 </button>
               </DropdownMenuTrigger>
