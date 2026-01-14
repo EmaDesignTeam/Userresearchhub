@@ -75,7 +75,7 @@ export default function MainLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="h-16 border-b border-neutral-200 flex items-center justify-between px-6" style={{ backgroundColor: 'var(--chart-1)' }}>
+        <header className="h-16 border-b border-neutral-200 flex items-center justify-between px-6" style={{ backgroundColor: 'var(--background)' }}>
           <div className="flex-1 max-w-xl">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
