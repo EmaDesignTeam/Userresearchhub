@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Calendar, FileText, Video, Settings as SettingsIcon, Shield, Search, Plus, Bell } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, FileText, Video, Settings as SettingsIcon, Shield, Search, Bell } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import {
@@ -86,10 +86,6 @@ export default function MainLayout() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Create
-            </Button>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
               <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full" />

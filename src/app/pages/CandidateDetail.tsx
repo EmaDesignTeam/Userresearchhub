@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
@@ -7,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Textarea } from '../components/ui/textarea';
 import { ArrowLeft, Calendar, Video, Plus } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import type { ResearchStatus } from '../types';
 
 export default function CandidateDetail() {
@@ -16,10 +18,34 @@ export default function CandidateDetail() {
   
   const candidate = candidates.find(c => c.id === id);
   const candidateSessions = sessions.filter(s => s.candidateId === id);
+  
+  // Local state for notes
+  const [notes, setNotes] = useState(candidate?.notes || '');
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Update local state when candidate changes
+  useEffect(() => {
+    if (candidate) {
+      setNotes(candidate.notes || '');
+    }
+  }, [candidate?.id, candidate?.notes]);
 
   if (!candidate) {
     return <div className="p-8">Candidate not found</div>;
   }
+  
+  const handleSaveNotes = async () => {
+    setIsSaving(true);
+    try {
+      await updateCandidate(candidate.id, { notes });
+      toast.success('Notes saved successfully');
+    } catch (error) {
+      console.error('Error saving notes:', error);
+      toast.error('Failed to save notes');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const getStatusColor = (status: ResearchStatus) => {
     switch (status) {
@@ -199,14 +225,19 @@ export default function CandidateDetail() {
             <CardContent>
               <Textarea
                 placeholder="Add notes about this candidate..."
-                value={candidate.notes}
-                onChange={(e) => updateCandidate(candidate.id, { notes: e.target.value })}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
                 className="min-h-[300px]"
+                disabled={isSaving}
               />
               <div className="flex justify-end gap-2 mt-4">
                 <Button variant="outline">Convert to Insight</Button>
-                <Button className="bg-emerald-600 hover:bg-emerald-700">
-                  Save Notes
+                <Button 
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  onClick={handleSaveNotes}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : 'Save Notes'}
                 </Button>
               </div>
             </CardContent>

@@ -8,35 +8,61 @@
 
 ---
 
-## 🚀 Quick Start
+## ⚠️ IMPORTANT: First Time Setup Required!
+
+**Getting "Failed to add candidate" error?** You need to complete the setup first!
+
+👉 **[READ setup-supabase.md FOR COMPLETE INSTRUCTIONS](./setup-supabase.md)** 👈
+
+**Quick Setup (5 minutes):**
+
+1. **Initialize Database Tables** (Required)
+   - Open [Supabase Dashboard](https://supabase.com/dashboard/project/orygtvywltqgjgzchavf)
+   - Go to SQL Editor
+   - Copy contents of `/supabase/functions/server/database-setup.sql`
+   - Paste and click "Run"
+
+2. **Deploy Edge Function** (Required)
+   ```bash
+   # Install Supabase CLI
+   brew install supabase/tap/supabase  # macOS
+   
+   # Deploy function
+   ./deploy-function.sh
+   ```
+   
+   Or manually in Dashboard → Edge Functions → Create Function
+
+3. **Verify Setup**
+   - Refresh your app
+   - Try adding a candidate
+   - It should work! ✅
+
+---
+
+## 🚀 Quick Start (After Setup)
 
 ### Prerequisites
-- Access to your Supabase project
-- Environment variables configured (`SUPABASE_URL`, keys)
+- ✅ Database tables created in Supabase
+- ✅ Edge function deployed
+- ✅ Environment variables configured
 
-### Setup (2 Minutes)
+### Using the App
 
-1. **Initialize Database**
-   ```bash
-   # Copy SQL to Supabase SQL Editor and run
-   /supabase/functions/server/database-setup.sql
-   ```
+1. **Add Candidates**
+   - Navigate to Candidates page
+   - Click "Add Candidate"
+   - Fill in details and save
 
-2. **Seed Sample Data (Optional)**
-   ```bash
-   cd supabase/functions/server
-   deno run --allow-net --allow-env seed-sample-data.tsx
-   ```
+2. **Create Sessions**
+   - Click "Create" button in header
+   - Select candidate and product
+   - Set date/time and save
 
-3. **Test Connection**
-   - Visit `/test` in your app
-   - Click "Run Connection Tests"
-   - Verify all tests pass ✅
-
-4. **Start Using!**
-   - Navigate to `/dashboard`
-   - Add candidates, sessions, and insights
-   - All data persists to Supabase
+3. **Track Insights**
+   - View sessions and add observations
+   - Create insights from findings
+   - Triage and assign to teams
 
 ---
 

@@ -21,12 +21,14 @@ import {
 } from '../components/ui/select';
 import { Plus, Search, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import CreateSessionModal from '../components/sessions/CreateSessionModal';
 
 export default function Sessions() {
   const { sessions, candidates } = useApp();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isCreateSessionModalOpen, setIsCreateSessionModalOpen] = useState(false);
 
   const filteredSessions = sessions.filter((session) => {
     const candidate = candidates.find(c => c.id === session.candidateId);
@@ -46,7 +48,7 @@ export default function Sessions() {
           <h1 className="text-3xl mb-2">Sessions</h1>
           <p className="text-neutral-600">Schedule and manage research sessions</p>
         </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700">
+        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setIsCreateSessionModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Create Session
         </Button>
@@ -138,6 +140,12 @@ export default function Sessions() {
           </div>
         )}
       </div>
+
+      {/* Create Session Modal */}
+      <CreateSessionModal 
+        open={isCreateSessionModalOpen} 
+        onOpenChange={setIsCreateSessionModalOpen} 
+      />
     </div>
   );
 }

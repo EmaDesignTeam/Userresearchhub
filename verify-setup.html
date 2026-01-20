@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResearchHub - Verify Supabase Setup</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #10b981;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        .pending {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 4px solid #f59e0b;
+        }
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #059669;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .test-result {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f9fafb;
+        }
+        pre {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .badge-success { background: #10b981; color: white; }
+        .badge-error { background: #ef4444; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 ResearchHub Setup Verification</h1>
+        <p>Click the button below to verify your Supabase connection and setup.</p>
+
+        <button onclick="runTests()" id="testBtn">🚀 Run Setup Tests</button>
+        <button onclick="location.reload()">🔄 Refresh</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const PROJECT_ID = 'orygtvywltqgjgzchavf';
+        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9yeWd0dnl3bHRxZ2pnemNoYXZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxNTI5OTMsImV4cCI6MjA4MjcyODk5M30.9Sb7bRiG_FcnHF4qXNT92RMEV7YMG8IvRUiuhUPVcY8';
+        const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/make-server-f854c4f1`;
+
+        async function runTests() {
+            const btn = document.getElementById('testBtn');
+            const resultsDiv = document.getElementById('results');
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ Testing...';
+            resultsDiv.innerHTML = '';
+
+            const tests = [
+                { name: 'Edge Function Deployed', test: testHealthEndpoint },
+                { name: 'Database Tables Created', test: testDatabaseTables },
+                { name: 'Departments Available', test: testDepartments },
+                { name: 'Teams Available', test: testTeams },
+                { name: 'Users Available', test: testUsers }
+            ];
+
+            let allPassed = true;
+
+            for (const test of tests) {
+                const result = await test.test();
+                displayResult(test.name, result);
+                if (!result.success) allPassed = false;
+            }
+
+            btn.disabled = false;
+            btn.textContent = '🚀 Run Setup Tests';
+
+            if (allPassed) {
+                resultsDiv.innerHTML += `
+                    <div class="status success">
+                        ✅ All tests passed! Your ResearchHub is ready to use!
+                        <br><br>
+                        <strong>Next step:</strong> Go to your application and try adding a candidate.
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML += `
+                    <div class="status error">
+                        ❌ Some tests failed. Please complete the setup steps in SETUP_INSTRUCTIONS.md
+                    </div>
+                `;
+            }
+        }
+
+        async function testHealthEndpoint() {
+            try {
+                const response = await fetch(`${BASE_URL}/health`, {
+                    headers: {
+                        'Authorization': `Bearer ${ANON_KEY}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    return {
+                        success: false,
+                        message: `HTTP ${response.status}: ${response.statusText}`,
+                        details: 'Edge function not deployed or not responding'
+                    };
+                }
+
+                const data = await response.json();
+                return {
+                    success: data.status === 'ok',
+                    message: data.status === 'ok' ? 'Edge function is live' : 'Unexpected response',
+                    details: JSON.stringify(data, null, 2)
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    message: error.message,
+                    details: 'Edge function not deployed. Follow Step 2 in SETUP_INSTRUCTIONS.md'
+                };
+            }
+        }
+
+        async function testDatabaseTables() {
+            try {
+                const response = await fetch(`${BASE_URL}/candidates`, {
+                    headers: {
+                        'Authorization': `Bearer ${ANON_KEY}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    return {
+                        success: false,
+                        message: error.error || 'Failed to fetch candidates',
+                        details: 'Database tables not created. Follow Step 1 in SETUP_INSTRUCTIONS.md'
+                    };
+                }
+
+                const data = await response.json();
+                return {
+                    success: true,
+                    message: `Database connected (${data.length} candidates found)`,
+                    details: 'Tables are properly initialized'
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    message: error.message,
+                    details: 'Cannot reach database'
+                };
+            }
+        }
+
+        async function testDepartments() {
+            try {
+                const response = await fetch(`${BASE_URL}/departments`, {
+                    headers: {
+                        'Authorization': `Bearer ${ANON_KEY}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    return { success: false, message: 'Departments table not accessible', details: '' };
+                }
+
+                const data = await response.json();
+                return {
+                    success: data.length > 0,
+                    message: `${data.length} departments found`,
+                    details: data.map(d => d.name).join(', ')
+                };
+            } catch (error) {
+                return { success: false, message: error.message, details: '' };
+            }
+        }
+
+        async function testTeams() {
+            try {
+                const response = await fetch(`${BASE_URL}/teams`, {
+                    headers: {
+                        'Authorization': `Bearer ${ANON_KEY}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    return { success: false, message: 'Teams table not accessible', details: '' };
+                }
+
+                const data = await response.json();
+                return {
+                    success: data.length > 0,
+                    message: `${data.length} teams found`,
+                    details: data.map(t => t.name).join(', ')
+                };
+            } catch (error) {
+                return { success: false, message: error.message, details: '' };
+            }
+        }
+
+        async function testUsers() {
+            try {
+                const response = await fetch(`${BASE_URL}/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${ANON_KEY}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    return { success: false, message: 'Users table not accessible', details: '' };
+                }
+
+                const data = await response.json();
+                return {
+                    success: data.length > 0,
+                    message: `${data.length} users found`,
+                    details: data.map(u => `${u.name} (${u.role})`).join(', ')
+                };
+            } catch (error) {
+                return { success: false, message: error.message, details: '' };
+            }
+        }
+
+        function displayResult(testName, result) {
+            const resultsDiv = document.getElementById('results');
+            const statusClass = result.success ? 'success' : 'error';
+            const icon = result.success ? '✅' : '❌';
+            
+            resultsDiv.innerHTML += `
+                <div class="test-result">
+                    <strong>${icon} ${testName}</strong>
+                    <span class="badge badge-${result.success ? 'success' : 'error'}">
+                        ${result.success ? 'PASS' : 'FAIL'}
+                    </span>
+                    <div style="margin-top: 8px; color: #6b7280;">
+                        ${result.message}
+                        ${result.details ? `<br><small>${result.details}</small>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
