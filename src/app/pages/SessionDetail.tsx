@@ -1,11 +1,12 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Textarea } from '../components/ui/textarea';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Package } from 'lucide-react';
 import { format } from 'date-fns';
+
+// Import reusable components
+import { StatusBadge, CategoryBadge, InfoCard } from '../components/common';
 
 export default function SessionDetail() {
   const { id } = useParams();
@@ -32,7 +33,8 @@ export default function SessionDetail() {
           <p className="text-neutral-600">{session.product} • {format(new Date(session.date), 'MMMM d, yyyy')} at {session.time}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Badge variant="outline">{session.status}</Badge>
+          {/* Use StatusBadge component */}
+          <StatusBadge status={session.status} showIcon />
           <Button className="bg-emerald-600 hover:bg-emerald-700">
             Add Recording
           </Button>
@@ -41,11 +43,9 @@ export default function SessionDetail() {
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Session Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          {/* Use InfoCard component */}
+          <InfoCard title="Session Details" icon={Calendar}>
+            <div className="space-y-4">
               <div>
                 <p className="text-sm text-neutral-600 mb-1">Candidate</p>
                 <p>{candidate.name}</p>
@@ -70,73 +70,63 @@ export default function SessionDetail() {
                 <p className="text-sm text-neutral-600 mb-2">Features Tested</p>
                 <div className="flex flex-wrap gap-1">
                   {session.featuresTested.map((feature, idx) => (
-                    <Badge key={idx} variant="secondary">
-                      {feature}
-                    </Badge>
+                    <CategoryBadge key={idx} category={feature} />
                   ))}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </InfoCard>
         </div>
 
         <div className="col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Objectives</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <InfoCard title="Objectives">
+            <div>
               <Textarea
                 placeholder="Session objectives..."
                 value={session.objectives || ''}
                 className="min-h-[100px]"
                 readOnly
               />
-            </CardContent>
-          </Card>
+            </div>
+          </InfoCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Observations</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <InfoCard title="Observations">
+            <div>
               <Textarea
                 placeholder="Key observations..."
                 value={session.observations || ''}
                 className="min-h-[150px]"
                 readOnly
               />
-            </CardContent>
-          </Card>
+            </div>
+          </InfoCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Quotes</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <InfoCard title="Quotes">
+            <div>
               <Textarea
                 placeholder="Notable quotes..."
                 value={session.quotes || ''}
                 className="min-h-[100px]"
                 readOnly
               />
-            </CardContent>
-          </Card>
+            </div>
+          </InfoCard>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Session Notes</CardTitle>
+          <InfoCard 
+            title="Session Notes"
+            action={
               <Button size="sm">Create Insight</Button>
-            </CardHeader>
-            <CardContent>
+            }
+          >
+            <div>
               <Textarea
                 placeholder="Additional session notes..."
                 value={session.sessionNotes}
                 className="min-h-[200px]"
                 readOnly
               />
-            </CardContent>
-          </Card>
+            </div>
+          </InfoCard>
         </div>
       </div>
     </div>

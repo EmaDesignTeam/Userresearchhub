@@ -1,27 +1,29 @@
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Label } from '../components/ui/label';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
 import { Separator } from '../components/ui/separator';
 import { useApp } from '../context/AppContext';
+import { User, Bell, Settings as SettingsIcon } from 'lucide-react';
+
+// Import reusable components
+import { PageHeader, InfoCard } from '../components/common';
 
 export default function Settings() {
   const { currentUser } = useApp();
 
   return (
-    <div className="p-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl mb-2">Settings</h1>
-        <p className="text-neutral-600">Manage your account and preferences</p>
-      </div>
+    <div className="p-8 max-w-4xl space-y-8">
+      {/* Use PageHeader component */}
+      <PageHeader
+        title="Settings"
+        description="Manage your account and preferences"
+      />
 
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        {/* Use InfoCard component */}
+        <InfoCard title="Profile Information" icon={User}>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" defaultValue={currentUser.name} />
@@ -41,14 +43,11 @@ export default function Settings() {
             <Button className="bg-emerald-600 hover:bg-emerald-700">
               Save Changes
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </InfoCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <InfoCard title="Notifications" icon={Bell}>
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p>Email notifications</p>
@@ -72,14 +71,11 @@ export default function Settings() {
               </div>
               <Switch defaultChecked />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </InfoCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Preferences</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <InfoCard title="Preferences" icon={SettingsIcon}>
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p>Dark mode</p>
@@ -95,8 +91,8 @@ export default function Settings() {
               </div>
               <Switch />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </InfoCard>
       </div>
     </div>
   );

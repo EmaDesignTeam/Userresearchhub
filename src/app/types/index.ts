@@ -16,6 +16,7 @@ export interface Recording {
   date: string;
   candidateId?: string;
   sessionId?: string;
+  transcript?: string;
 }
 
 export interface Candidate {
