@@ -113,7 +113,8 @@ export function transformRecording(dbRecording: any): Recording {
     url: dbRecording.url,
     date: dbRecording.recording_date,
     candidateId: dbRecording.candidate_id,
-    sessionId: dbRecording.session_id
+    sessionId: dbRecording.session_id,
+    transcript: dbRecording.transcript
   };
 }
 
@@ -187,6 +188,7 @@ export function toDbRecording(recording: Partial<Recording>) {
     url: recording.url,
     recording_date: recording.date,
     candidate_id: recording.candidateId,
-    session_id: recording.sessionId
+    session_id: recording.sessionId,
+    transcript: recording.transcript
   };
 }

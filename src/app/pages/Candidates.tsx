@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Badge } from '../components/ui/badge';
 import {
   Table,
   TableBody,
@@ -19,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { Plus, Search, Filter, MoreHorizontal, Video, Users } from 'lucide-react';
+import { Plus, Filter, MoreHorizontal, Video, Users } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +28,16 @@ import AddCandidateModal from '../components/candidates/AddCandidateModal';
 import { format } from 'date-fns';
 import type { ResearchStatus, UserType } from '../types';
 
+// Import reusable components
+import { 
+  PageHeader, 
+  StatusBadge, 
+  CategoryBadge, 
+  SearchInput, 
+  DataTableWrapper,
+  EmptyState 
+} from '../components/common';
+
 export default function Candidates() {
   const { candidates, products } = useApp();
   const navigate = useNavigate();
@@ -39,18 +47,6 @@ export default function Candidates() {
   const [productFilter, setProductFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const getStatusColor = (status: ResearchStatus) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'Scheduled':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'To be scheduled':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'Skipped':
-        return 'bg-neutral-100 text-neutral-600 border-neutral-200';
-    }
-  };
 
   // Filter candidates
   const filteredCandidates = candidates.filter((candidate) => {
@@ -71,32 +67,28 @@ export default function Candidates() {
   const userTypes: UserType[] = ['Builder', 'End User'];
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl mb-2">Candidates</h1>
-          <p className="text-neutral-600">Manage and track your research participants</p>
-        </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setIsAddModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Candidate
-        </Button>
-      </div>
+    <div className="p-8 space-y-6">
+      {/* Use PageHeader component */}
+      <PageHeader
+        title="Candidates"
+        description="Manage and track your research participants"
+        action={
+          <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setIsAddModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Candidate
+          </Button>
+        }
+      />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex-1 min-w-[300px] max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
-            <Input
-              placeholder="Search candidates..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
+      <div className="flex flex-wrap gap-4">
+        {/* Use SearchInput component */}
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search candidates..."
+          className="flex-1 min-w-[300px] max-w-md"
+        />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
             <Filter className="h-4 w-4 mr-2" />
@@ -144,8 +136,8 @@ export default function Candidates() {
         Showing {filteredCandidates.length} of {candidates.length} candidates
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
+      {/* Table - Use DataTableWrapper component */}
+      <DataTableWrapper>
         <Table>
           <TableHeader>
             <TableRow className="bg-neutral-50">
@@ -176,26 +168,21 @@ export default function Candidates() {
                   {format(new Date(candidate.dateOfJoining), 'MMM d, yyyy')}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={getStatusColor(candidate.researchStatus)}>
-                    {candidate.researchStatus}
-                  </Badge>
+                  {/* Use StatusBadge component */}
+                  <StatusBadge status={candidate.researchStatus} showIcon />
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {candidate.featuresTested.slice(0, 2).map((feature, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {feature}
-                      </Badge>
+                      <CategoryBadge key={idx} category={feature} />
                     ))}
                     {candidate.featuresTested.length > 2 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{candidate.featuresTested.length - 2}
-                      </Badge>
+                      <CategoryBadge category={`+${candidate.featuresTested.length - 2}`} />
                     )}
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{candidate.userType}</Badge>
+                  <CategoryBadge category={candidate.userType} />
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1 text-sm text-neutral-600">
@@ -231,13 +218,17 @@ export default function Candidates() {
           </TableBody>
         </Table>
         {filteredCandidates.length === 0 && (
-          <div className="text-center py-12 text-neutral-500">
-            <Users className="h-12 w-12 mx-auto mb-3 opacity-40" />
-            <p>No candidates found</p>
-            <p className="text-sm mt-1">Try adjusting your filters</p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No candidates found"
+            description="Try adjusting your filters or add a new candidate"
+            action={{
+              label: "Add Candidate",
+              onClick: () => setIsAddModalOpen(true)
+            }}
+          />
         )}
-      </div>
+      </DataTableWrapper>
 
       <AddCandidateModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
     </div>

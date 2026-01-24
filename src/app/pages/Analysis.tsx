@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Badge } from '../components/ui/badge';
 import {
   Table,
   TableBody,
@@ -24,9 +22,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
-import { Plus, Search, Filter, MoreHorizontal, AlertCircle, Paperclip } from 'lucide-react';
+import { Plus, Filter, MoreHorizontal, AlertCircle, Paperclip } from 'lucide-react';
 import { format } from 'date-fns';
-import type { InsightStatus, Priority, Category, Team, Effort } from '../types';
+import type { InsightStatus, Priority, Category, Team, Effort, Insight } from '../types';
+import CreateInsightModal from '../components/insights/CreateInsightModal';
+import EditInsightModal from '../components/insights/EditInsightModal';
+
+// Import reusable components
+import {
+  PageHeader,
+  StatusBadge,
+  PriorityBadge,
+  CategoryBadge,
+  SearchInput,
+  DataTableWrapper,
+  EmptyState
+} from '../components/common';
 
 export default function Analysis() {
   const { insights, candidates, products, updateInsight } = useApp();
@@ -36,43 +47,23 @@ export default function Analysis() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [teamFilter, setTeamFilter] = useState<string>('all');
   const [productFilter, setProductFilter] = useState<string>('all');
+  const [isCreateInsightModalOpen, setIsCreateInsightModalOpen] = useState(false);
+  const [isEditInsightModalOpen, setIsEditInsightModalOpen] = useState(false);
+  const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
 
-  const getStatusColor = (status: InsightStatus) => {
-    switch (status) {
-      case 'Picked up':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'Under development':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'Resolved':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'Skipped':
-        return 'bg-neutral-100 text-neutral-600 border-neutral-200';
+  const handleEditInsight = (insight: Insight) => {
+    setSelectedInsight(insight);
+    setIsEditInsightModalOpen(true);
+  };
+
+  const handleMarkResolved = async (insight: Insight) => {
+    try {
+      await updateInsight(insight.id, { status: 'Resolved' });
+    } catch (error) {
+      console.error('Error marking resolved:', error);
     }
   };
 
-  const getPriorityColor = (priority: Priority) => {
-    switch (priority) {
-      case 'P0':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'P1':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'P2':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-    }
-  };
-
-  const getCategoryColor = (category: Category) => {
-    switch (category) {
-      case 'Bug':
-        return 'bg-red-50 text-red-700';
-      case 'Feature Enhancement':
-        return 'bg-purple-50 text-purple-700';
-      case 'Copy Change':
-        return 'bg-blue-50 text-blue-700';
-      case 'Other':
-        return 'bg-neutral-50 text-neutral-700';
-    }
-  };
 
   const filteredInsights = insights.filter((insight) => {
     const matchesSearch = 
@@ -95,31 +86,28 @@ export default function Analysis() {
   const efforts: Effort[] = ['xs', 'sm', 'md', 'lg'];
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl mb-2">Analysis & Insights</h1>
-          <p className="text-neutral-600">Track and triage research insights and issues</p>
-        </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Insight
-        </Button>
-      </div>
+    <div className="p-8 space-y-6">
+      {/* Use PageHeader component */}
+      <PageHeader
+        title="Analysis & Insights"
+        description="Track and triage research insights and issues"
+        action={
+          <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setIsCreateInsightModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Insight
+          </Button>
+        }
+      />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex-1 min-w-[300px] max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
-            <Input
-              placeholder="Search insights..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
+      <div className="flex flex-wrap gap-4">
+        {/* Use SearchInput component */}
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search insights..."
+          className="flex-1 min-w-[300px] max-w-md"
+        />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
             <Filter className="h-4 w-4 mr-2" />
@@ -192,8 +180,8 @@ export default function Analysis() {
         Showing {filteredInsights.length} of {insights.length} insights
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
+      {/* Table - Use DataTableWrapper component */}
+      <DataTableWrapper>
         <Table>
           <TableHeader>
             <TableRow className="bg-neutral-50">
@@ -213,11 +201,14 @@ export default function Analysis() {
             {filteredInsights.map((insight) => {
               const candidate = candidates.find(c => c.id === insight.userInterviewed);
               return (
-                <TableRow key={insight.id} className="hover:bg-neutral-50">
+                <TableRow 
+                  key={insight.id} 
+                  className="hover:bg-neutral-50 cursor-pointer"
+                  onClick={() => handleEditInsight(insight)}
+                >
                   <TableCell>
-                    <Badge variant="outline" className={getPriorityColor(insight.priority)}>
-                      {insight.priority}
-                    </Badge>
+                    {/* Use PriorityBadge component */}
+                    <PriorityBadge priority={insight.priority} />
                   </TableCell>
                   <TableCell className="text-neutral-600">{candidate?.name}</TableCell>
                   <TableCell>
@@ -228,13 +219,12 @@ export default function Analysis() {
                       </p>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button>
-                          <Badge variant="outline" className={getStatusColor(insight.status)}>
-                            {insight.status}
-                          </Badge>
+                          {/* Use StatusBadge component */}
+                          <StatusBadge status={insight.status} showIcon variant="insight" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
@@ -250,15 +240,14 @@ export default function Analysis() {
                     </DropdownMenu>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={getCategoryColor(insight.category)}>
-                      {insight.category}
-                    </Badge>
+                    {/* Use CategoryBadge component */}
+                    <CategoryBadge category={insight.category} showIcon />
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{insight.team}</Badge>
+                    <CategoryBadge category={insight.team} />
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{insight.effort}</Badge>
+                    <CategoryBadge category={insight.effort} />
                   </TableCell>
                   <TableCell>
                     {insight.attachments.length > 0 && (
@@ -269,7 +258,7 @@ export default function Analysis() {
                     )}
                   </TableCell>
                   <TableCell className="text-neutral-600">{insight.product}</TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -277,10 +266,12 @@ export default function Analysis() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                        <DropdownMenuItem>Mark resolved</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditInsight(insight)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleMarkResolved(insight)}>
+                          Mark resolved
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -290,13 +281,30 @@ export default function Analysis() {
           </TableBody>
         </Table>
         {filteredInsights.length === 0 && (
-          <div className="text-center py-12 text-neutral-500">
-            <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-40" />
-            <p>No insights found</p>
-            <p className="text-sm mt-1">Try adjusting your filters</p>
-          </div>
+          <EmptyState
+            icon={AlertCircle}
+            title="No insights found"
+            description="Try adjusting your filters or create your first insight"
+            action={{
+              label: "Create Insight",
+              onClick: () => setIsCreateInsightModalOpen(true)
+            }}
+          />
         )}
-      </div>
+      </DataTableWrapper>
+
+      {/* Create Insight Modal */}
+      <CreateInsightModal 
+        open={isCreateInsightModalOpen} 
+        onOpenChange={setIsCreateInsightModalOpen} 
+      />
+
+      {/* Edit Insight Modal */}
+      <EditInsightModal 
+        open={isEditInsightModalOpen} 
+        onOpenChange={setIsEditInsightModalOpen}
+        insight={selectedInsight}
+      />
     </div>
   );
 }

@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Badge } from '../components/ui/badge';
 import {
   Table,
   TableBody,
@@ -19,9 +17,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { Plus, Search, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import CreateSessionModal from '../components/sessions/CreateSessionModal';
+
+// Import reusable components
+import {
+  PageHeader,
+  StatusBadge,
+  CategoryBadge,
+  SearchInput,
+  DataTableWrapper,
+  EmptyState
+} from '../components/common';
 
 export default function Sessions() {
   const { sessions, candidates } = useApp();
@@ -42,30 +50,27 @@ export default function Sessions() {
   });
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl mb-2">Sessions</h1>
-          <p className="text-neutral-600">Schedule and manage research sessions</p>
-        </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setIsCreateSessionModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Session
-        </Button>
-      </div>
+    <div className="p-8 space-y-6">
+      {/* Use PageHeader component */}
+      <PageHeader
+        title="Sessions"
+        description="Schedule and manage research sessions"
+        action={
+          <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setIsCreateSessionModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Session
+          </Button>
+        }
+      />
 
-      <div className="flex gap-4 mb-6">
-        <div className="flex-1 max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
-            <Input
-              placeholder="Search sessions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
+      <div className="flex gap-4">
+        {/* Use SearchInput component */}
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search sessions..."
+          className="flex-1 max-w-md"
+        />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
@@ -79,7 +84,8 @@ export default function Sessions() {
         </Select>
       </div>
 
-      <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
+      {/* Use DataTableWrapper component */}
+      <DataTableWrapper>
         <Table>
           <TableHeader>
             <TableRow className="bg-neutral-50">
@@ -106,14 +112,10 @@ export default function Sessions() {
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {session.featuresTested.slice(0, 2).map((feature, idx) => (
-                        <Badge key={idx} variant="secondary" className="text-xs">
-                          {feature}
-                        </Badge>
+                        <CategoryBadge key={idx} category={feature} />
                       ))}
                       {session.featuresTested.length > 2 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{session.featuresTested.length - 2}
-                        </Badge>
+                        <CategoryBadge category={`+${session.featuresTested.length - 2}`} />
                       )}
                     </div>
                   </TableCell>
@@ -126,7 +128,8 @@ export default function Sessions() {
                   </TableCell>
                   <TableCell className="text-neutral-600">{session.duration}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{session.status}</Badge>
+                    {/* Use StatusBadge component */}
+                    <StatusBadge status={session.status} showIcon />
                   </TableCell>
                 </TableRow>
               );
@@ -134,12 +137,17 @@ export default function Sessions() {
           </TableBody>
         </Table>
         {filteredSessions.length === 0 && (
-          <div className="text-center py-12 text-neutral-500">
-            <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-40" />
-            <p>No sessions found</p>
-          </div>
+          <EmptyState
+            icon={CalendarIcon}
+            title="No sessions found"
+            description="Create your first research session"
+            action={{
+              label: "Create Session",
+              onClick: () => setIsCreateSessionModalOpen(true)
+            }}
+          />
         )}
-      </div>
+      </DataTableWrapper>
 
       {/* Create Session Modal */}
       <CreateSessionModal 

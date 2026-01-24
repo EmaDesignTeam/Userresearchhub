@@ -15,6 +15,7 @@ interface AppContextType {
   candidates: Candidate[];
   sessions: Session[];
   insights: Insight[];
+  recordings: Recording[];
   products: Product[];
   users: User[];
   activity: ActivityItem[];
@@ -43,6 +44,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
   const [products] = useState<Product[]>(initialProducts);
   const [users, setUsers] = useState<User[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
@@ -66,6 +68,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         candidatesData,
         sessionsData,
         insightsData,
+        recordingsData,
         usersData,
         activityData,
         departmentsData,
@@ -74,6 +77,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         api.getCandidates(),
         api.getSessions(),
         api.getInsights(),
+        api.getRecordings(),
         api.getUsers(),
         api.getActivity(),
         api.getDepartments(),
@@ -96,6 +100,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         .map(transformers.transformInsight)
         .filter(Boolean);
       
+      const transformedRecordings = (recordingsData || [])
+        .filter(Boolean)
+        .map(transformers.transformRecording)
+        .filter(Boolean);
+      
       const transformedUsers = (usersData || [])
         .filter(Boolean)
         .map(transformers.transformUser)
@@ -109,6 +118,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCandidates(transformedCandidates);
       setSessions(transformedSessions);
       setInsights(transformedInsights);
+      setRecordings(transformedRecordings);
       setUsers(transformedUsers);
       setActivity(transformedActivity);
       setDepartments(departmentsData || []);
@@ -268,10 +278,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addRecording = async (candidateId: string, recording: Omit<Recording, 'id'>) => {
     try {
       const dbData = transformers.toDbRecording({ ...recording, candidateId });
-      await api.createRecording(dbData);
+      const newRecording = await api.createRecording(dbData);
       
-      // Refresh recordings - for now, we'll just note that the recording was added
-      // In a full implementation, you'd fetch the candidate's recordings
+      // Add to recordings list
+      setRecordings(prev => [transformers.transformRecording(newRecording), ...prev]);
+      
+      // Refresh candidates to get updated recordings
+      const candidatesData = await api.getCandidates();
+      const transformedCandidates = (candidatesData || [])
+        .filter(Boolean)
+        .map(transformers.transformCandidate)
+        .filter(Boolean);
+      setCandidates(transformedCandidates);
     } catch (err) {
       console.error('Error adding recording:', err);
       throw err;
@@ -312,6 +330,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         candidates,
         sessions,
         insights,
+        recordings,
         products,
         users,
         activity,

@@ -6,22 +6,50 @@ import { Badge } from '../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
-import { ArrowLeft, Calendar, Video, Plus } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { ArrowLeft, Calendar, Video, Plus, AlertCircle, ExternalLink, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import type { ResearchStatus } from '../types';
+import type { ResearchStatus, InsightStatus, Priority, Category, Insight } from '../types';
+import CreateInsightModal from '../components/insights/CreateInsightModal';
+import EditInsightModal from '../components/insights/EditInsightModal';
+import AddRecordingModal from '../components/recordings/AddRecordingModal';
+
+// Import reusable components
+import {
+  StatusBadge,
+  PriorityBadge,
+  CategoryBadge,
+  EmptyState,
+  InfoCard
+} from '../components/common';
 
 export default function CandidateDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { candidates, sessions, updateCandidate } = useApp();
+  const { candidates, sessions, insights, recordings, updateCandidate } = useApp();
   
   const candidate = candidates.find(c => c.id === id);
   const candidateSessions = sessions.filter(s => s.candidateId === id);
+  const candidateInsights = insights.filter(i => i.userInterviewed === id);
+  const candidateRecordings = recordings.filter(r => r.candidateId === id);
   
   // Local state for notes
   const [notes, setNotes] = useState(candidate?.notes || '');
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Modal states
+  const [isCreateInsightModalOpen, setIsCreateInsightModalOpen] = useState(false);
+  const [isEditInsightModalOpen, setIsEditInsightModalOpen] = useState(false);
+  const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null);
+  const [isAddRecordingModalOpen, setIsAddRecordingModalOpen] = useState(false);
+  const [selectedRecording, setSelectedRecording] = useState<any>(null);
   
   // Update local state when candidate changes
   useEffect(() => {
@@ -29,6 +57,11 @@ export default function CandidateDetail() {
       setNotes(candidate.notes || '');
     }
   }, [candidate?.id, candidate?.notes]);
+
+  const handleEditInsight = (insight: Insight) => {
+    setSelectedInsight(insight);
+    setIsEditInsightModalOpen(true);
+  };
 
   if (!candidate) {
     return <div className="p-8">Candidate not found</div>;
@@ -47,18 +80,6 @@ export default function CandidateDetail() {
     }
   };
 
-  const getStatusColor = (status: ResearchStatus) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'Scheduled':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'To be scheduled':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'Skipped':
-        return 'bg-neutral-100 text-neutral-600 border-neutral-200';
-    }
-  };
 
   return (
     <div className="p-8">
@@ -80,14 +101,13 @@ export default function CandidateDetail() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className={getStatusColor(candidate.researchStatus)}>
-            {candidate.researchStatus}
-          </Badge>
+          {/* Use StatusBadge component */}
+          <StatusBadge status={candidate.researchStatus} showIcon />
           <Button className="bg-emerald-600 hover:bg-emerald-700">
             <Calendar className="h-4 w-4 mr-2" />
             Schedule Session
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setIsAddRecordingModalOpen(true)}>
             <Video className="h-4 w-4 mr-2" />
             Add Recording
           </Button>
@@ -98,17 +118,16 @@ export default function CandidateDetail() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="sessions">Sessions ({candidateSessions.length})</TabsTrigger>
+          <TabsTrigger value="insights">Insights ({candidateInsights.length})</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="recordings">Recordings ({candidate.recordings.length})</TabsTrigger>
+          <TabsTrigger value="recordings">Recordings ({candidateRecordings.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            {/* Use InfoCard component */}
+            <InfoCard title="Profile Information">
+              <div className="space-y-4">
                 <div>
                   <p className="text-sm text-neutral-600 mb-1">Department</p>
                   <p>{candidate.department}</p>
@@ -127,24 +146,19 @@ export default function CandidateDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-neutral-600 mb-1">User Type</p>
-                  <Badge variant="outline">{candidate.userType}</Badge>
+                  <CategoryBadge category={candidate.userType} />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </InfoCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Research Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <InfoCard title="Research Details">
+              <div className="space-y-4">
                 <div>
                   <p className="text-sm text-neutral-600 mb-2">Features Tested</p>
                   <div className="flex flex-wrap gap-2">
                     {candidate.featuresTested.length > 0 ? (
                       candidate.featuresTested.map((feature, idx) => (
-                        <Badge key={idx} variant="secondary">
-                          {feature}
-                        </Badge>
+                        <CategoryBadge key={idx} category={feature} />
                       ))
                     ) : (
                       <p className="text-sm text-neutral-500">No features tested yet</p>
@@ -153,9 +167,7 @@ export default function CandidateDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-neutral-600 mb-1">Research Status</p>
-                  <Badge variant="outline" className={getStatusColor(candidate.researchStatus)}>
-                    {candidate.researchStatus}
-                  </Badge>
+                  <StatusBadge status={candidate.researchStatus} showIcon />
                 </div>
                 <div>
                   <p className="text-sm text-neutral-600 mb-1">Total Sessions</p>
@@ -163,29 +175,30 @@ export default function CandidateDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-neutral-600 mb-1">Recordings</p>
-                  <p>{candidate.recordings.length}</p>
+                  <p>{candidateRecordings.length}</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </InfoCard>
           </div>
         </TabsContent>
 
         <TabsContent value="sessions">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Sessions</CardTitle>
+          <InfoCard 
+            title="Sessions"
+            action={
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Schedule New
               </Button>
-            </CardHeader>
-            <CardContent>
-              {candidateSessions.length === 0 ? (
-                <div className="text-center py-12 text-neutral-500">
-                  <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                  <p>No sessions scheduled yet</p>
-                </div>
-              ) : (
+            }
+          >
+            {candidateSessions.length === 0 ? (
+              <EmptyState
+                icon={Calendar}
+                title="No sessions scheduled yet"
+                description="Schedule a research session with this candidate"
+              />
+            ) : (
                 <div className="space-y-4">
                   {candidateSessions.map((session) => (
                     <div
@@ -200,29 +213,80 @@ export default function CandidateDetail() {
                             {format(new Date(session.date), 'MMMM d, yyyy')} at {session.time}
                           </p>
                         </div>
-                        <Badge variant="outline">{session.status}</Badge>
+                        <StatusBadge status={session.status} showIcon />
                       </div>
                       <div className="flex flex-wrap gap-1 mt-2">
                         {session.featuresTested.map((feature, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">
-                            {feature}
-                          </Badge>
+                          <CategoryBadge key={idx} category={feature} />
                         ))}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </InfoCard>
+        </TabsContent>
+
+        <TabsContent value="insights">
+          <InfoCard
+            title="Research Insights"
+            action={
+              <Button size="sm" onClick={() => setIsCreateInsightModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Insight
+              </Button>
+            }
+          >
+            {candidateInsights.length === 0 ? (
+              <EmptyState
+                icon={AlertCircle}
+                title="No insights created yet"
+                description="Insights will appear here once created"
+              />
+            ) : (
+                <div className="space-y-4">
+                  {candidateInsights.map((insight) => (
+                    <div
+                      key={insight.id}
+                      className="p-4 border rounded-lg hover:bg-neutral-50 cursor-pointer"
+                      onClick={() => handleEditInsight(insight)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-medium mb-1">{insight.title}</h3>
+                          {insight.description && (
+                            <p className="text-sm text-neutral-600 line-clamp-2">
+                              {insight.description}
+                            </p>
+                          )}
+                        </div>
+                        <PriorityBadge priority={insight.priority} />
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        <StatusBadge status={insight.status} showIcon variant="insight" />
+                        <CategoryBadge category={insight.category} showIcon />
+                        <CategoryBadge category={insight.team} />
+                        <CategoryBadge category={insight.effort} />
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs text-neutral-500">
+                        <div className="flex items-center gap-4">
+                          {insight.product && <span>Product: {insight.product}</span>}
+                          {insight.assignee && <span>Assignee: {insight.assignee}</span>}
+                        </div>
+                        <span>Created {format(new Date(insight.createdAt), 'MMM d, yyyy')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+          </InfoCard>
         </TabsContent>
 
         <TabsContent value="notes">
-          <Card>
-            <CardHeader>
-              <CardTitle>Research Notes</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <InfoCard title="Research Notes">
+            <div>
               <Textarea
                 placeholder="Add notes about this candidate..."
                 value={notes}
@@ -240,41 +304,151 @@ export default function CandidateDetail() {
                   {isSaving ? 'Saving...' : 'Save Notes'}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </InfoCard>
         </TabsContent>
 
         <TabsContent value="recordings">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Recordings</CardTitle>
-              <Button size="sm">
+          <InfoCard
+            title="Recordings"
+            action={
+              <Button size="sm" onClick={() => setIsAddRecordingModalOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Recording
               </Button>
-            </CardHeader>
-            <CardContent>
-              {candidate.recordings.length === 0 ? (
-                <div className="text-center py-12 text-neutral-500">
-                  <Video className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                  <p>No recordings added yet</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  {candidate.recordings.map((recording) => (
-                    <div key={recording.id} className="p-4 border rounded-lg hover:bg-neutral-50 cursor-pointer">
-                      <p className="mb-1">{recording.title}</p>
-                      <p className="text-sm text-neutral-600">
-                        {format(new Date(recording.date), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                  ))}
+            }
+          >
+            {candidateRecordings.length === 0 ? (
+              <EmptyState
+                icon={Video}
+                title="No recordings added yet"
+                description="Add recordings to capture interview insights"
+              />
+            ) : (
+                <div className="space-y-3">
+                  {candidateRecordings.map((recording) => {
+                    const hasVideo = recording.url && recording.url !== 'N/A';
+                    const hasTranscript = recording.transcript && recording.transcript.trim().length > 0;
+                    return (
+                      <div 
+                        key={recording.id} 
+                        className="p-4 border rounded-lg hover:bg-neutral-50 transition-colors cursor-pointer"
+                        onClick={() => setSelectedRecording(recording)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Video className="h-4 w-4 text-neutral-400" />
+                              <h4 className="font-medium">{recording.title}</h4>
+                            </div>
+                            <div className="flex gap-2 mb-2">
+                              {hasVideo && (
+                                <Badge variant="outline" className="text-xs">
+                                  <Video className="h-3 w-3 mr-1" />
+                                  Video
+                                </Badge>
+                              )}
+                              {hasTranscript && (
+                                <Badge variant="outline" className="text-xs">
+                                  <FileText className="h-3 w-3 mr-1" />
+                                  Transcript
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-neutral-600">
+                              {recording.date ? format(new Date(recording.date), 'MMMM d, yyyy') : 'No date'}
+                            </p>
+                          </div>
+                          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            {hasVideo && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => window.open(recording.url, '_blank')}
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Open
+                              </Button>
+                            )}
+                            {hasTranscript && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setSelectedRecording(recording)}
+                              >
+                                <FileText className="h-3 w-3 mr-1" />
+                                View
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </InfoCard>
         </TabsContent>
       </Tabs>
+
+      {/* Create Insight Modal */}
+      <CreateInsightModal 
+        open={isCreateInsightModalOpen} 
+        onOpenChange={setIsCreateInsightModalOpen}
+        defaultCandidateId={candidate.id}
+      />
+
+      {/* Edit Insight Modal */}
+      <EditInsightModal 
+        open={isEditInsightModalOpen} 
+        onOpenChange={setIsEditInsightModalOpen}
+        insight={selectedInsight}
+      />
+
+      {/* Add Recording Modal */}
+      <AddRecordingModal 
+        open={isAddRecordingModalOpen} 
+        onOpenChange={setIsAddRecordingModalOpen}
+        candidateId={candidate.id}
+        candidateName={candidate.name}
+      />
+
+      {/* View Recording/Transcript Dialog */}
+      <Dialog open={!!selectedRecording} onOpenChange={() => setSelectedRecording(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedRecording?.title}</DialogTitle>
+            <DialogDescription>
+              {selectedRecording?.date && format(new Date(selectedRecording.date), 'MMMM d, yyyy')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedRecording?.url && selectedRecording.url !== 'N/A' && (
+              <div>
+                <h3 className="font-medium mb-2">Video Link</h3>
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.open(selectedRecording.url, '_blank')}
+                  className="w-full"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Video in New Tab
+                </Button>
+              </div>
+            )}
+            {selectedRecording?.transcript && (
+              <div>
+                <h3 className="font-medium mb-2">Transcript</h3>
+                <div className="bg-neutral-50 border rounded-lg p-4 max-h-96 overflow-y-auto">
+                  <pre className="whitespace-pre-wrap text-sm font-sans">
+                    {selectedRecording.transcript}
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -6,6 +6,9 @@ import { Users, Calendar, AlertCircle, TrendingUp, Clock, ExternalLink } from 'l
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
+// Import reusable components
+import { PageHeader, StatCard, StatusBadge, EmptyState } from '../components/common';
+
 export default function Dashboard() {
   const { candidates, sessions, insights, activity, currentUser } = useApp();
   const navigate = useNavigate();
@@ -107,29 +110,42 @@ export default function Dashboard() {
 
   return (
     <div className="p-8 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl mb-2">Welcome back, {currentUser?.name || 'User'}</h1>
-        <p className="text-neutral-600">Here's what's happening with your research today</p>
-      </div>
+      {/* Use PageHeader component */}
+      <PageHeader
+        title={`Welcome back, ${currentUser?.name || 'User'}`}
+        description="Here's what's happening with your research today"
+      />
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Using StatCard component */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-neutral-600 mb-1">{stat.title}</p>
-                  <p className="text-3xl">{stat.value}</p>
-                </div>
-                <div className={`h-12 w-12 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <StatCard
+          title="Upcoming Sessions"
+          value={upcomingSessions}
+          icon={Calendar}
+          color="blue"
+          onClick={() => navigate('/sessions')}
+        />
+        <StatCard
+          title="To be Scheduled"
+          value={toBeScheduled}
+          icon={Clock}
+          color="amber"
+          onClick={() => navigate('/candidates')}
+        />
+        <StatCard
+          title="Open P0 Insights"
+          value={p0Insights}
+          icon={AlertCircle}
+          color="red"
+          onClick={() => navigate('/analysis')}
+        />
+        <StatCard
+          title="Under Development"
+          value={underDevelopment}
+          icon={TrendingUp}
+          color="emerald"
+          onClick={() => navigate('/analysis')}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -143,10 +159,15 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {scheduledSessions.length === 0 ? (
-              <div className="text-center py-8 text-neutral-500">
-                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                <p>No upcoming sessions</p>
-              </div>
+              <EmptyState
+                icon={Calendar}
+                title="No upcoming sessions"
+                description="Schedule a session with a candidate"
+                action={{
+                  label: "Schedule Session",
+                  onClick: () => navigate('/sessions')
+                }}
+              />
             ) : (
               <div className="space-y-4">
                 {scheduledSessions.map((session) => {
@@ -192,10 +213,11 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {recentlyResolved.length === 0 ? (
-              <div className="text-center py-8 text-neutral-500">
-                <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                <p>No resolved insights yet</p>
-              </div>
+              <EmptyState
+                icon={AlertCircle}
+                title="No resolved insights yet"
+                description="Start tracking insights from your research sessions"
+              />
             ) : (
               <div className="space-y-4">
                 {recentlyResolved.map((insight) => (
@@ -205,10 +227,7 @@ export default function Dashboard() {
                     onClick={() => navigate('/analysis')}
                   >
                     <div className="flex items-start gap-3 mb-2">
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                        {insight.priority}
-                      </Badge>
-                      <Badge variant="outline">{insight.category}</Badge>
+                      <StatusBadge status="Resolved" showIcon />
                     </div>
                     <p className="text-sm line-clamp-2">{insight.title}</p>
                     <p className="text-xs text-neutral-500 mt-2">
