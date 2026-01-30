@@ -162,6 +162,13 @@ export async function updateUser(id: string, data: any) {
   });
 }
 
+export async function inviteUser(data: { email: string; name: string; role: string; team_id?: string }) {
+  return apiRequest<{ success: boolean; message: string; user: any }>('/invite-user', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 // =====================================================
 // DEPARTMENTS & TEAMS API
 // =====================================================

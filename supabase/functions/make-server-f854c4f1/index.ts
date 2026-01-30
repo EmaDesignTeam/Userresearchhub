@@ -475,6 +475,81 @@ app.put("/make-server-f854c4f1/users/:id", async (c) => {
   }
 });
 
+// Invite user via email
+app.post("/make-server-f854c4f1/invite-user", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email, name, role, team_id } = body;
+
+    // Validate required fields
+    if (!email || !name || !role) {
+      return c.json({ error: 'Email, name, and role are required' }, 400);
+    }
+
+    // Check if user already exists in users table
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (existingUser) {
+      return c.json({ error: 'A user with this email already exists' }, 400);
+    }
+
+    // Get the site URL for redirect
+    const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:5173';
+
+    // Send invitation email using Supabase Auth Admin API
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+      data: {
+        name,
+        full_name: name,
+        role,
+        team_id,
+      },
+      redirectTo: `${siteUrl}/set-password`,
+    });
+
+    if (inviteError) {
+      console.error('Error sending invite:', inviteError);
+      return c.json({ error: inviteError.message }, 500);
+    }
+
+    // Create user record in users table with "Invited" status
+    const userRecord: any = {
+      name,
+      email,
+      role,
+      status: 'Invited',
+    };
+    if (team_id) {
+      userRecord.team_id = team_id;
+    }
+
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .insert([userRecord])
+      .select(`*, team:teams(id, name)`)
+      .single();
+
+    if (userError) {
+      console.error('Error creating user record:', userError);
+      // Don't fail the request - the invite was sent successfully
+      // The user record can be created when they accept the invite
+    }
+
+    return c.json({
+      success: true,
+      message: `Invitation sent to ${email}`,
+      user: userData || { email, name, role, status: 'Invited' },
+    }, 201);
+  } catch (error: any) {
+    console.error('Error inviting user:', error);
+    return c.json({ error: error?.message || 'Failed to send invitation' }, 500);
+  }
+});
+
 // =====================================================
 // DEPARTMENTS & TEAMS ENDPOINTS
 // =====================================================

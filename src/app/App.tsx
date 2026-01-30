@@ -7,6 +7,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import ForgotPassword from './pages/ForgotPassword';
+import SetPassword from './pages/SetPassword';
 import Dashboard from './pages/Dashboard';
 import Candidates from './pages/Candidates';
 import CandidateDetail from './pages/CandidateDetail';
@@ -89,6 +90,9 @@ function AppContent() {
 
   return (
     <Routes>
+      {/* Set password route - accessible via invite link (handles its own auth) */}
+      <Route path="/set-password" element={<SetPassword />} />
+
       {/* Public auth routes - redirect to dashboard if logged in */}
       <Route element={<PublicRoute />}>
         <Route path="/signin" element={<SignIn />} />

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { inviteUser } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -87,7 +88,8 @@ import {
   X,
   Download,
   Upload,
-  HelpCircle
+  HelpCircle,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -106,9 +108,10 @@ import {
 } from '../components/common';
 
 export default function Admin() {
-  const { users, products, addUser } = useApp();
+  const { users, products, teams, refreshData } = useApp();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteData, setInviteData] = useState({
     name: '',
     email: '',
@@ -129,20 +132,37 @@ export default function Admin() {
     user.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleInviteUser = (e: React.FormEvent) => {
+  const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    addUser({
-      ...inviteData,
-      status: 'Invited'
-    });
-    toast.success('User invitation sent');
-    setIsInviteModalOpen(false);
-    setInviteData({
-      name: '',
-      email: '',
-      role: 'Researcher',
-      team: 'UX'
-    });
+    setInviteLoading(true);
+
+    try {
+      // Find the team_id from the team name
+      const team = teams.find((t: any) => t.name === inviteData.team);
+      
+      await inviteUser({
+        email: inviteData.email,
+        name: inviteData.name,
+        role: inviteData.role,
+        team_id: team?.id,
+      });
+      
+      toast.success(`Invitation sent to ${inviteData.email}`);
+      setIsInviteModalOpen(false);
+      setInviteData({
+        name: '',
+        email: '',
+        role: 'Researcher',
+        team: 'UX'
+      });
+      
+      // Refresh users list to show the new invited user
+      await refreshData();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to send invitation');
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   return (
@@ -914,12 +934,12 @@ export default function MyPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
+      <Dialog open={isInviteModalOpen} onOpenChange={(open) => !inviteLoading && setIsInviteModalOpen(open)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Invite User</DialogTitle>
             <DialogDescription>
-              Send an invitation to join your research workspace
+              Send an invitation email to join your research workspace
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleInviteUser}>
@@ -931,6 +951,7 @@ export default function MyPage() {
                   value={inviteData.name}
                   onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
                   required
+                  disabled={inviteLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -941,6 +962,7 @@ export default function MyPage() {
                   value={inviteData.email}
                   onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
                   required
+                  disabled={inviteLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -948,6 +970,7 @@ export default function MyPage() {
                 <Select
                   value={inviteData.role}
                   onValueChange={(value) => setInviteData({ ...inviteData, role: value as UserRole })}
+                  disabled={inviteLoading}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -964,6 +987,7 @@ export default function MyPage() {
                 <Select
                   value={inviteData.team}
                   onValueChange={(value) => setInviteData({ ...inviteData, team: value as Team })}
+                  disabled={inviteLoading}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -977,11 +1001,18 @@ export default function MyPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsInviteModalOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsInviteModalOpen(false)} disabled={inviteLoading}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
-                Send Invitation
+              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={inviteLoading}>
+                {inviteLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Invitation'
+                )}
               </Button>
             </DialogFooter>
           </form>
