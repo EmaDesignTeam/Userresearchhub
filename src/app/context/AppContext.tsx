@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import type { Candidate, Session, Insight, User, Product, ActivityItem, Recording } from '../types';
 import * as api from '../services/api';
 import * as transformers from '../services/transformers';
+import { useAuth } from './AuthContext';
 
 // Sample products (not stored in DB yet)
 const initialProducts: Product[] = [
@@ -41,6 +42,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user: authUser } = useAuth();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
@@ -54,10 +56,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all data on mount
+  // Fetch all data when auth user changes
   useEffect(() => {
-    loadInitialData();
-  }, []);
+    if (authUser) {
+      loadInitialData();
+    } else {
+      // Clear data when user logs out
+      setCandidates([]);
+      setSessions([]);
+      setInsights([]);
+      setRecordings([]);
+      setUsers([]);
+      setActivity([]);
+      setCurrentUser(null);
+      setDepartments([]);
+      setTeams([]);
+      setLoading(false);
+    }
+  }, [authUser]);
 
   const loadInitialData = async () => {
     try {
@@ -124,21 +140,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setDepartments(departmentsData || []);
       setTeams(teamsData || []);
 
-      // Set first admin user as current user
-      const adminUser = (usersData || []).find((u: any) => u.role === 'Admin');
-      if (adminUser) {
-        setCurrentUser(transformers.transformUser(adminUser));
-      } else {
-        // Fallback: create a default user if none exists
-        console.warn('No admin user found, using fallback user');
-        setCurrentUser({
-          id: 'fallback',
-          name: 'Admin User',
-          email: 'admin@researchhub.com',
-          role: 'Admin',
-          team: 'FE',
-          status: 'Active'
-        });
+      // Find or create current user based on authenticated user
+      if (authUser) {
+        // Try to find existing user by email
+        const existingUser = (usersData || []).find(
+          (u: any) => u.email?.toLowerCase() === authUser.email?.toLowerCase()
+        );
+
+        if (existingUser) {
+          setCurrentUser(transformers.transformUser(existingUser));
+        } else {
+          // Create a fallback user object from auth data
+          const authUserName = authUser.user_metadata?.name || 
+                               authUser.user_metadata?.full_name || 
+                               authUser.email?.split('@')[0] || 
+                               'User';
+          
+          setCurrentUser({
+            id: authUser.id,
+            name: authUserName,
+            email: authUser.email || '',
+            role: 'Researcher', // Default role for new users
+            team: '',
+            status: 'Active'
+          });
+        }
       }
     } catch (err) {
       console.error('Error loading initial data:', err);
@@ -315,9 +341,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const dbData = transformers.toDbUser(updates, team?.id);
       
       const updatedUser = await api.updateUser(id, dbData);
+      const transformedUser = transformers.transformUser(updatedUser);
+      
       setUsers(prev =>
-        prev.map(u => (u.id === id ? transformers.transformUser(updatedUser) : u))
+        prev.map(u => (u.id === id ? transformedUser : u))
       );
+
+      // Update currentUser if they updated their own profile
+      if (currentUser && currentUser.id === id) {
+        setCurrentUser(transformedUser);
+      }
     } catch (err) {
       console.error('Error updating user:', err);
       throw err;

@@ -1,17 +1,20 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function ForgotPassword() {
+  const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email) {
@@ -22,9 +25,19 @@ export default function ForgotPassword() {
       return;
     }
 
-    // Simulate sending reset email
-    setSuccess(true);
+    setLoading(true);
     setError('');
+
+    const { error: resetError } = await resetPassword(email);
+
+    if (resetError) {
+      setError(resetError.message);
+      setLoading(false);
+      return;
+    }
+
+    setSuccess(true);
+    setLoading(false);
   };
 
   if (success) {
@@ -90,6 +103,7 @@ export default function ForgotPassword() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={error ? 'border-red-500' : ''}
+                disabled={loading}
               />
               {error && (
                 <p className="text-sm text-red-500">{error}</p>
@@ -97,8 +111,19 @@ export default function ForgotPassword() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700">
-              Send reset link
+            <Button 
+              type="submit" 
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send reset link'
+              )}
             </Button>
           </CardFooter>
         </form>
